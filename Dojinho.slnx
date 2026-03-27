@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Dojinho.Data/Dojinho.Data.csproj" Id="52cc2cd7-0868-45cf-8aa1-6a6a6212b0f4" />
+  <Project Path="Dojinho.Domain/Dojinho.Domain.csproj" />
+  <Project Path="Dojinho.Services/Dojinho.Services.csproj" />
+  <Project Path="Dojinho.Testes/Dojinho.Testes.csproj" />
+  <Project Path="Dojinho.Validacoes/Dojinho.Validacoes.csproj" />
+</Solution>
