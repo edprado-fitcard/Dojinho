@@ -9,6 +9,6 @@
         CNHVencida = 91,
         SenhaMinimo2Digitos = 119,
         TempoIntervaloCondutorExcedido = 199,
-        ErroIxeplicavel = 999
+        ErroInexplicavel = 999
     }
 }
