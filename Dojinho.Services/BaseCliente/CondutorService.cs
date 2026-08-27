@@ -26,10 +26,9 @@ namespace Dojinho.Services.BaseCliente
             _veiculoService = veiculoService;
         }
 
-        private bool ValidarSenhaInformada(string senhaInformada)
-        {
-            return senhaInformada.Length >= 2;
-        }
+        private bool ValidarSenhaInformada(string senhaInformada) =>
+            senhaInformada.Length >= 2;
+        
 
         private bool SenhaAcessoValidada(string senhaCondutor, string senhaInformada, string descricaoEntrada) =>
             (senhaInformada == "998877" && descricaoEntrada == "MANUAL") || ComparaVerificandoHASH(senhaCondutor, senhaInformada);
@@ -93,14 +92,6 @@ namespace Dojinho.Services.BaseCliente
         private bool RegrasAbastecimento(Condutor condutor, int? tipoCombustivel)
         {
             return PossuiIntervaloAbastecimento(condutor) && PossuiUltimoAbastecimento(condutor) && PossuiIntervaloExcedido(condutor) && tipoCombustivel != 4;
-        }
-
-        public bool ValidaSenha(Condutor condutor, string senha, string descricaoEntrada)
-        {
-            if ((senha == "998877" && descricaoEntrada == "MANUAL") || ComparaVerificandoHASH(condutor.Senha, senha))
-                return true;
-
-            return false;
         }
 
         public ERetorno VerificaCNHCondutor(Condutor condutor, PermissaoXCliente permissao, string database, Requisicao requisicao)
