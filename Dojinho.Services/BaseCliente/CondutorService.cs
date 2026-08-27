@@ -17,8 +17,8 @@ namespace Dojinho.Services.BaseCliente
         private readonly IPermissaoXClienteService _permissaoXClienteService;
         private readonly IVeiculoService _veiculoService;
 
-        public CondutorService(ICondutorRepository condutorRepository, 
-                               IPermissaoXClienteService permissaoXClienteService, 
+        public CondutorService(ICondutorRepository condutorRepository,
+                               IPermissaoXClienteService permissaoXClienteService,
                                IVeiculoService veiculoService)
         {
             _condutorRepository = condutorRepository;
@@ -26,97 +26,78 @@ namespace Dojinho.Services.BaseCliente
             _veiculoService = veiculoService;
         }
 
-        public ERetorno ValidarCondutor(Condutor condutor, string senha, string bancoCliente, string descricaoEntrada, int codigoCliente, Veiculo veiculo, Requisicao requisicao)
-        {            
-            var permissao = _permissaoXClienteService.ObterPermissao(codigoCliente, Permissao.MenuRestricao);
+        private bool ValidarSenhaInformada(string senhaInformada) =>
+            senhaInformada.Length >= 2;
+        
 
+        private bool SenhaAcessoValidada(string senhaCondutor, string senhaInformada, string descricaoEntrada) =>
+            (senhaInformada == "998877" && descricaoEntrada == "MANUAL") || ComparaVerificandoHASH(senhaCondutor, senhaInformada);
+
+
+        private ERetorno CadastrarSenhaCondutor(Condutor condutor, string senha, string bancoCliente)
+        {
+            var senhaInformadaValidada = ValidarSenhaInformada(senha);
+
+            if (!senhaInformadaValidada)
+                return ERetorno.SenhaMinimo2Digitos;
+
+            _condutorRepository.CadastrarSenha(condutor, senha, bancoCliente);
+            return ERetorno.EmProcesso;
+        }
+
+
+        public ERetorno ValidarCondutor(Condutor condutor, string senha, string bancoCliente, string descricaoEntrada, int codigoCliente, Veiculo veiculo, Requisicao requisicao)
+        {
             if (condutor == null)
                 return ERetorno.CondutorNaoLocalizado;
 
-            if (condutor.status)
+            if (condutor.status == false)
+                return ERetorno.CondutorBloqueado;
+
+            if (string.IsNullOrEmpty(condutor.Senha))
+                return CadastrarSenhaCondutor(condutor, senha, bancoCliente);
+
+            if (!SenhaAcessoValidada(condutor.Senha, senha, descricaoEntrada))
+                return ERetorno.SenhaIncorreta;
+
+            if (RegrasAbastecimento(condutor, veiculo.tipocomb_veiculo))
             {
-                if (senha == "998877" && descricaoEntrada == "MANUAL")
-                {
+                if (veiculo.liberaVeiculo == 0)
+                    return ERetorno.TempoIntervaloCondutorExcedido;
 
-                    return VerificaCNHCondutor(condutor, permissao, bancoCliente, requisicao);
-                }
-                else
-                {
-                    if (!string.IsNullOrEmpty(condutor.Senha))
-                    {
-                        if (ValidaSenha(condutor, senha, descricaoEntrada))
-                        {
-                            //Controle de Intervalo em minutos
-                            if (condutor.IntervaloAbastecimento != 0)
-                            {
-                                // Verificar se o condutor tem um abastecimento anterior, caso tenha verificar se o intervalo já foi excedido para liberar um novo abastecimento
-                                if (condutor.UltimoAbastecimento != -1)
-                                {
-                                    if (condutor.UltimoAbastecimento < condutor.IntervaloAbastecimento)
-                                    {
-                                        // Verificar se o tipo de combustível é diferente de 4 (Flex), caso seja diferente, verificar a flag liberaVeiculo para liberar ou não um novo abastecimento
-                                        if (veiculo.tipocomb_veiculo != 4)
-                                        {
-                                            if (veiculo.liberaVeiculo == 0)
-                                            {
-                                                return ERetorno.TempoIntervaloCondutorExcedido;
-                                            }
-                                            else
-                                            {
-                                                _veiculoService.AtualizarFlagLiberaVeiculo(veiculo, bancoCliente);
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            return VerificaCNHCondutor(condutor, permissao, bancoCliente, requisicao);
-                        }
-                        else return ERetorno.SenhaIncorreta;
-                    }
-                    else
-                    {
-                        if (!string.IsNullOrEmpty(senha))
-                        {
-                            // Validar se tem pelo menos 2 caracteres a nova senha(igual no POS)
-                            if (senha.Length >= 2)
-                            {
-                                _condutorRepository.CadastrarSenha(condutor, senha, bancoCliente);
-                                return ERetorno.EmProcesso;
-                            }
-                            else return ERetorno.SenhaMinimo2Digitos;
-                        }
-                        else return ERetorno.SenhaIncorreta; 
-                    }
-                }
+                _veiculoService.AtualizarFlagLiberaVeiculo(veiculo, bancoCliente);
             }
 
-            else return ERetorno.CondutorBloqueado;
+            var permissao = _permissaoXClienteService.ObterPermissao(codigoCliente, Permissao.MenuRestricao);
+            return VerificaCNHCondutor(condutor, permissao, bancoCliente, requisicao);
         }
 
-        public bool ValidaSenha(Condutor condutor, string senha, string descricaoEntrada)
+        //Controle de Intervalo em minutos
+        private bool PossuiIntervaloAbastecimento(Condutor condutor)
         {
-            if (senha == "998877" && descricaoEntrada == "MANUAL")
-                return true;
-            if (ComparaVerificandoHASH(condutor.Senha, senha))
-                return true;
-            else
-                return false;
+            return condutor.IntervaloAbastecimento != 0;
+        }
+
+        private bool PossuiUltimoAbastecimento(Condutor condutor)
+        {
+            return condutor.UltimoAbastecimento != -1;
+        }
+
+        //verificar se o intervalo já foi excedido para liberar um novo abastecimento
+        private bool PossuiIntervaloExcedido(Condutor condutor)
+        {
+            return condutor.UltimoAbastecimento < condutor.IntervaloAbastecimento;
+        }
+
+        private bool RegrasAbastecimento(Condutor condutor, int? tipoCombustivel)
+        {
+            return PossuiIntervaloAbastecimento(condutor) && PossuiUltimoAbastecimento(condutor) && PossuiIntervaloExcedido(condutor) && tipoCombustivel != 4;
         }
 
         public ERetorno VerificaCNHCondutor(Condutor condutor, PermissaoXCliente permissao, string database, Requisicao requisicao)
         {
-            if (permissao != null && condutor.ValidadeCNH.AddDays(condutor.ToleranciaCnhVencida) < DateTime.Today)
-            {
-                if (condutor.tipoRestricaoValidadeCnh)
-                {
-                    return ERetorno.CNHVencida;
-                }
-                else
-                {                  
-                    return ERetorno.EmProcesso;
-                }
-            }
+            if (permissao != null && condutor.ValidadeCNH.AddDays(condutor.ToleranciaCnhVencida) < DateTime.Today && condutor.tipoRestricaoValidadeCnh)
+                return ERetorno.CNHVencida;
 
             return ERetorno.EmProcesso;
         }
@@ -133,8 +114,7 @@ namespace Dojinho.Services.BaseCliente
                 toCompare = GetMD5Hash(toCompare);
 
 
-            if (value.ToLower() == toCompare.ToLower()) return true;
-            return false;
+            return value.ToLower() == toCompare.ToLower();
         }
 
         public static string GetMD5Hash(string input)
@@ -146,20 +126,17 @@ namespace Dojinho.Services.BaseCliente
 
             // step 2, convert byte array to hex string
             StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < hash.Length; i++)
-            {
-                sb.Append(hash[i].ToString("X2"));
-            }
+
+            foreach (byte b in hash)
+                sb.Append(b.ToString("X2"));
+
             return sb.ToString();
         }
 
         public static bool IsHash(string value)
         {
             Regex r = new Regex("[0-9a-fA-F]{32}");
-            if (r.IsMatch(value))
-                return true;
-            else
-                return false;
+            return r.IsMatch(value);
         }
     }
 }
