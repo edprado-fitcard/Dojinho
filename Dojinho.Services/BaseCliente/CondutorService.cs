@@ -26,54 +26,51 @@ namespace Dojinho.Services.BaseCliente
             _veiculoService = veiculoService;
         }
 
+        private bool ValidarSenhaInformada(string senhaInformada)
+        {
+            return senhaInformada.Length >= 2;
+        }
+
+        private bool SenhaAcessoValidada(string senhaCondutor, string senhaInformada, string descricaoEntrada) =>
+            (senhaInformada == "998877" && descricaoEntrada == "MANUAL") || ComparaVerificandoHASH(senhaCondutor, senhaInformada);
+
+
+        private ERetorno CadastrarSenhaCondutor(Condutor condutor, string senha, string bancoCliente)
+        {
+            var senhaInformadaValidada = ValidarSenhaInformada(senha);
+
+            if (!senhaInformadaValidada)
+                return ERetorno.SenhaMinimo2Digitos;
+
+            _condutorRepository.CadastrarSenha(condutor, senha, bancoCliente);
+            return ERetorno.EmProcesso;
+        }
+
+
         public ERetorno ValidarCondutor(Condutor condutor, string senha, string bancoCliente, string descricaoEntrada, int codigoCliente, Veiculo veiculo, Requisicao requisicao)
         {
-            var permissao = _permissaoXClienteService.ObterPermissao(codigoCliente, Permissao.MenuRestricao);
-
             if (condutor == null)
                 return ERetorno.CondutorNaoLocalizado;
 
             if (condutor.status == false)
                 return ERetorno.CondutorBloqueado;
 
-            if (senha == "998877" && descricaoEntrada == "MANUAL")
-                return VerificaCNHCondutor(condutor, permissao, bancoCliente, requisicao);
+            if (string.IsNullOrEmpty(condutor.Senha))
+                return CadastrarSenhaCondutor(condutor, senha, bancoCliente);
 
-            if (!string.IsNullOrEmpty(condutor.Senha))
-            {
-                if (ValidaSenha(condutor, senha, descricaoEntrada))
-                {
-                    if (RegrasAbastecimento(condutor))
-                    {
-                        // Verificar se o tipo de combustível é diferente de 4 (Flex), caso seja diferente, verificar a flag liberaVeiculo para liberar ou não um novo abastecimento
-                        if (veiculo.tipocomb_veiculo != 4)
-                        {
-                            if (veiculo.liberaVeiculo == 0)
-                                return ERetorno.TempoIntervaloCondutorExcedido;
-
-                            _veiculoService.AtualizarFlagLiberaVeiculo(veiculo, bancoCliente);
-                        }
-                    }
-
-                    return VerificaCNHCondutor(condutor, permissao, bancoCliente, requisicao);
-                }
-
+            if (!SenhaAcessoValidada(condutor.Senha, senha, descricaoEntrada))
                 return ERetorno.SenhaIncorreta;
-            }
 
-            if (!string.IsNullOrEmpty(senha))
+            if (RegrasAbastecimento(condutor, veiculo.tipocomb_veiculo))
             {
-                // Validar se tem pelo menos 2 caracteres a nova senha(igual no POS)
-                if (senha.Length >= 2)
-                {
-                    _condutorRepository.CadastrarSenha(condutor, senha, bancoCliente);
-                    return ERetorno.EmProcesso;
-                }
+                if (veiculo.liberaVeiculo == 0)
+                    return ERetorno.TempoIntervaloCondutorExcedido;
 
-                return ERetorno.SenhaMinimo2Digitos;
+                _veiculoService.AtualizarFlagLiberaVeiculo(veiculo, bancoCliente);
             }
 
-            return ERetorno.SenhaIncorreta;
+            var permissao = _permissaoXClienteService.ObterPermissao(codigoCliente, Permissao.MenuRestricao);
+            return VerificaCNHCondutor(condutor, permissao, bancoCliente, requisicao);
         }
 
         //Controle de Intervalo em minutos
@@ -93,9 +90,9 @@ namespace Dojinho.Services.BaseCliente
             return condutor.UltimoAbastecimento < condutor.IntervaloAbastecimento;
         }
 
-        private bool RegrasAbastecimento(Condutor condutor)
+        private bool RegrasAbastecimento(Condutor condutor, int? tipoCombustivel)
         {
-            return PossuiIntervaloAbastecimento(condutor) && PossuiUltimoAbastecimento(condutor) && PossuiIntervaloExcedido(condutor);
+            return PossuiIntervaloAbastecimento(condutor) && PossuiUltimoAbastecimento(condutor) && PossuiIntervaloExcedido(condutor) && tipoCombustivel != 4;
         }
 
         public bool ValidaSenha(Condutor condutor, string senha, string descricaoEntrada)
