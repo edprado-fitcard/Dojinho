@@ -6,6 +6,7 @@ using Dojinho.Domain.Icode;
 using Dojinho.Services.BaseCliente;
 using Dojinho.Services.Interfaces.BaseCliente;
 using Dojinho.Services.Interfaces.Icode;
+using Dojinho.Services.Utils;
 using Moq;
 
 namespace Dojinho.Testes
@@ -42,8 +43,19 @@ namespace Dojinho.Testes
         [TestMethod]
         public void DeveRetornarCondutorNaoLocalizadoQuandoCondutorForNull()
         {
-            var resultado = _service.ValidarCondutor(null, "", _bancoCliente, "", _codigoCliente, new Veiculo(), new Requisicao());
 
+            var request = new ValidacaoCondutorRequest
+            {
+                Condutor = null!,
+                Senha = "",
+                BancoCliente = _bancoCliente,
+                DescricaoEntrada = "",
+                CodigoCliente = _codigoCliente,
+                Veiculo = new Veiculo(),
+                Requisicao = new Requisicao()
+            };
+
+            var resultado = _service.ValidarCondutor(request);
             Assert.AreEqual(ERetorno.CondutorNaoLocalizado, resultado);
         }
 
@@ -53,10 +65,21 @@ namespace Dojinho.Testes
         [TestMethod]
         public void DeveRetornarCondutorBloqueadoQuandoStatusForFalse()
         {
-            var condutor = new Condutor { status = false };
+            var condutor = new Condutor { Status = false };
 
-            var resultado = _service.ValidarCondutor(condutor, "", _bancoCliente, "", _codigoCliente, new Veiculo(), new Requisicao());
 
+            var request = new ValidacaoCondutorRequest
+            {
+                Condutor = condutor,
+                Senha = "",
+                BancoCliente = _bancoCliente,
+                DescricaoEntrada = "",
+                CodigoCliente = _codigoCliente,
+                Veiculo = new Veiculo(),
+                Requisicao = new Requisicao()
+            };
+
+            var resultado = _service.ValidarCondutor(request);
             Assert.AreEqual(ERetorno.CondutorBloqueado, resultado);
         }
 
@@ -70,7 +93,7 @@ namespace Dojinho.Testes
         {
             var condutor = new Condutor
             {
-                status = true,
+                Status = true,
                 Senha = "123"
             };
 
@@ -79,10 +102,20 @@ namespace Dojinho.Testes
                 Senha = "4321",
                 DescricaoEntrada = "POS",
                 ModoEntrada = ModoEntrada.POS
-            };           
+            };
 
-            var resultado = _service.ValidarCondutor(condutor, requisicao.Senha, _bancoCliente, requisicao.DescricaoEntrada, _codigoCliente, new Veiculo(), requisicao);
+            var request = new ValidacaoCondutorRequest
+            {
+                Condutor = condutor,
+                Senha = requisicao.Senha,
+                BancoCliente = _bancoCliente,
+                DescricaoEntrada = requisicao.DescricaoEntrada,
+                CodigoCliente = _codigoCliente,
+                Veiculo = new Veiculo(),
+                Requisicao = requisicao
+            };
 
+            var resultado = _service.ValidarCondutor(request);
             Assert.AreEqual(ERetorno.SenhaIncorreta, resultado);
         }
 
@@ -96,8 +129,8 @@ namespace Dojinho.Testes
         {
             var condutor = new Condutor
             {
-                status = true,
-                Senha = CondutorService.GetMD5Hash("123")
+                Status = true,
+                Senha = GerenciadorDeHash.GerarHashMD5("123")
             };
 
             var requisicao = new Requisicao
@@ -107,8 +140,18 @@ namespace Dojinho.Testes
                 ModoEntrada = ModoEntrada.POS
             };
 
-            var resultado = _service.ValidarCondutor(condutor, requisicao.Senha, _bancoCliente, requisicao.DescricaoEntrada, _codigoCliente, new Veiculo(), requisicao);
+            var request = new ValidacaoCondutorRequest
+            {
+                Condutor = condutor,
+                Senha = requisicao.Senha,
+                BancoCliente = _bancoCliente,
+                DescricaoEntrada = requisicao.DescricaoEntrada,
+                CodigoCliente = _codigoCliente,
+                Veiculo = new Veiculo(),
+                Requisicao = requisicao
+            };
 
+            var resultado = _service.ValidarCondutor(request);
             Assert.AreEqual(ERetorno.SenhaIncorreta, resultado);
         }
 
@@ -122,19 +165,29 @@ namespace Dojinho.Testes
         {
             var condutor = new Condutor
             {
-                status = true,
+                Status = true,
                 Senha = "123"
             };
 
             var requisicao = new Requisicao
             {
-                Senha = CondutorService.GetMD5Hash("4321"),
+                Senha = GerenciadorDeHash.GerarHashMD5("4321"),
                 DescricaoEntrada = "TEF",
                 ModoEntrada = ModoEntrada.TEF
             };
 
-            var resultado = _service.ValidarCondutor(condutor, requisicao.Senha, _bancoCliente, requisicao.DescricaoEntrada, _codigoCliente, new Veiculo(), requisicao);
+            var request = new ValidacaoCondutorRequest
+            {
+                Condutor = condutor,
+                Senha = requisicao.Senha,
+                BancoCliente = _bancoCliente,
+                DescricaoEntrada = requisicao.DescricaoEntrada,
+                CodigoCliente = _codigoCliente,
+                Veiculo = new Veiculo(),
+                Requisicao = requisicao
+            };
 
+            var resultado = _service.ValidarCondutor(request);
             Assert.AreEqual(ERetorno.SenhaIncorreta, resultado);
         }
 
@@ -148,19 +201,29 @@ namespace Dojinho.Testes
         {
             var condutor = new Condutor
             {
-                status = true,
-                Senha = CondutorService.GetMD5Hash("123")
+                Status = true,
+                Senha = GerenciadorDeHash.GerarHashMD5("123")
             };
 
             var requisicao = new Requisicao
             {
-                Senha = CondutorService.GetMD5Hash("4321"),
+                Senha = GerenciadorDeHash.GerarHashMD5("4321"),
                 DescricaoEntrada = "TEF",
                 ModoEntrada = ModoEntrada.TEF
             };
 
-            var resultado = _service.ValidarCondutor(condutor, requisicao.Senha, _bancoCliente, requisicao.DescricaoEntrada, _codigoCliente, new Veiculo(), requisicao);
+            var request = new ValidacaoCondutorRequest
+            {
+                Condutor = condutor,
+                Senha = requisicao.Senha,
+                BancoCliente = _bancoCliente,
+                DescricaoEntrada = requisicao.DescricaoEntrada,
+                CodigoCliente = _codigoCliente,
+                Veiculo = new Veiculo(),
+                Requisicao = requisicao
+            };
 
+            var resultado = _service.ValidarCondutor(request);
             Assert.AreEqual(ERetorno.SenhaIncorreta, resultado);
         }
 
@@ -173,7 +236,7 @@ namespace Dojinho.Testes
         {
             var condutor = new Condutor
             {
-                status = true,
+                Status = true,
                 Senha = "123"
             };
 
@@ -184,8 +247,18 @@ namespace Dojinho.Testes
                 ModoEntrada = ModoEntrada.Manual
             };
 
-            var resultado = _service.ValidarCondutor(condutor, requisicao.Senha, _bancoCliente, requisicao.DescricaoEntrada, _codigoCliente, new Veiculo(), requisicao);
+            var request = new ValidacaoCondutorRequest
+            {
+                Condutor = condutor,
+                Senha = requisicao.Senha,
+                BancoCliente = _bancoCliente,
+                DescricaoEntrada = requisicao.DescricaoEntrada,
+                CodigoCliente = _codigoCliente,
+                Veiculo = new Veiculo(),
+                Requisicao = requisicao
+            };
 
+            var resultado = _service.ValidarCondutor(request);
             Assert.AreEqual(ERetorno.SenhaIncorreta, resultado);
         }
 
@@ -194,11 +267,11 @@ namespace Dojinho.Testes
         {
             var condutor = new Condutor
             {
-                status = true,
+                Status = true,
                 Senha = "123",
                 ValidadeCNH = DateTime.Today.AddDays(-10),
                 ToleranciaCnhVencida = 0,
-                tipoRestricaoValidadeCnh = true
+                TipoRestricaoValidadeCnh = true
             };
 
             var veiculo = new Veiculo();
@@ -216,8 +289,17 @@ namespace Dojinho.Testes
                 .Setup(x => x.ObterPermissao(It.IsAny<int>(), Permissao.MenuRestricao))
                 .Returns(permissao);
 
-            var resultado = _service.ValidarCondutor(condutor, requisicao.Senha, _bancoCliente, requisicao.DescricaoEntrada, _codigoCliente, veiculo, requisicao);
-
+            var request = new ValidacaoCondutorRequest
+            {
+                Condutor = condutor,
+                Senha = requisicao.Senha,
+                BancoCliente = _bancoCliente,
+                DescricaoEntrada = requisicao.DescricaoEntrada,
+                CodigoCliente = _codigoCliente,
+                Veiculo = new Veiculo(),
+                Requisicao = requisicao
+            };
+            var resultado = _service.ValidarCondutor(request);
             Assert.AreEqual(ERetorno.CNHVencida, resultado);
         }
 
@@ -226,22 +308,31 @@ namespace Dojinho.Testes
         {
             var condutor = new Condutor
             {
-                status = true,
+                Status = true,
                 Senha = null
             };
 
             var requisicao = new Requisicao
             {
-                Senha = "4321",
+                Senha = GerenciadorDeHash.GerarHashMD5("123"),
                 DescricaoEntrada = "POS",
                 ModoEntrada = ModoEntrada.POS
             };
 
-            var resultado = _service.ValidarCondutor(condutor, requisicao.Senha, _bancoCliente, requisicao.DescricaoEntrada, _codigoCliente, new Veiculo(), requisicao);
+            var request = new ValidacaoCondutorRequest
+            {
+                Condutor = condutor,
+                Senha = requisicao.Senha,
+                BancoCliente = _bancoCliente,
+                DescricaoEntrada = requisicao.DescricaoEntrada,
+                CodigoCliente = _codigoCliente,
+                Veiculo = new Veiculo(),
+                Requisicao = requisicao
+            };
 
-            _condutorRepositoryMock.Verify(x => x.CadastrarSenha(condutor, requisicao.Senha, _bancoCliente), Times.Once);
-
+            var resultado = _service.ValidarCondutor(request);
             Assert.AreEqual(ERetorno.EmProcesso, resultado);
+            _condutorRepositoryMock.Verify(x => x.CadastrarSenha(condutor, requisicao.Senha, _bancoCliente), Times.Once);
         }
 
         [TestMethod]
@@ -249,7 +340,7 @@ namespace Dojinho.Testes
         {
             var condutor = new Condutor
             {
-                status = true,
+                Status = true,
                 Senha = null
             };
 
@@ -260,8 +351,17 @@ namespace Dojinho.Testes
                 ModoEntrada = ModoEntrada.POS
             };
 
-            var resultado = _service.ValidarCondutor(condutor, requisicao.Senha, _bancoCliente, requisicao.DescricaoEntrada, _codigoCliente, new Veiculo(), requisicao);
-
+            var request = new ValidacaoCondutorRequest
+            {
+                Condutor = condutor,
+                Senha = requisicao.Senha,
+                BancoCliente = _bancoCliente,
+                DescricaoEntrada = requisicao.DescricaoEntrada,
+                CodigoCliente = _codigoCliente,
+                Veiculo = new Veiculo(),
+                Requisicao = requisicao
+            };
+            var resultado = _service.ValidarCondutor(request);
             Assert.AreEqual(ERetorno.SenhaMinimo2Digitos, resultado);
         }
 
@@ -270,26 +370,29 @@ namespace Dojinho.Testes
         {
             var condutor = new Condutor
             {
-                status = true,
-                Senha = CondutorService.GetMD5Hash("123"),
-                IntervaloAbastecimento = 10,
-                UltimoAbastecimento = 5
+                Status = true,
+                Senha = GerenciadorDeHash.GerarHashMD5("123"),
+
+                IntervaloAbastecimento = 30,
+                UltimoAbastecimento = 10
             };
 
-            var veiculo = new Veiculo
+            var request = new ValidacaoCondutorRequest
             {
-                tipocomb_veiculo = 1,
-                liberaVeiculo = 0
-            };
-
-            var requisicao = new Requisicao
-            {
+                Condutor = condutor,
                 Senha = "123",
+                BancoCliente = _bancoCliente,
                 DescricaoEntrada = "POS",
-                ModoEntrada = ModoEntrada.POS
+                CodigoCliente = _codigoCliente,
+                Veiculo = new Veiculo
+                {
+                    tipocomb_veiculo = 1,
+                    liberaVeiculo = 0 
+                },
+                Requisicao = new Requisicao()
             };
 
-            var resultado = _service.ValidarCondutor(condutor, requisicao.Senha, _bancoCliente, requisicao.DescricaoEntrada, _codigoCliente, veiculo, requisicao);
+            var resultado = _service.ValidarCondutor(request);
 
             Assert.AreEqual(ERetorno.TempoIntervaloCondutorExcedido, resultado);
         }
@@ -302,11 +405,11 @@ namespace Dojinho.Testes
         {
             var condutor = new Condutor
             {
-                status = true,
-                Senha = CondutorService.GetMD5Hash("123"),
+                Status = true,
+                Senha = GerenciadorDeHash.GerarHashMD5("123"),
                 ValidadeCNH = DateTime.Today.AddDays(-10),
                 ToleranciaCnhVencida = 0,
-                tipoRestricaoValidadeCnh = true
+                TipoRestricaoValidadeCnh = true
             };
 
             var veiculo = new Veiculo();
@@ -324,8 +427,17 @@ namespace Dojinho.Testes
                 .Setup(x => x.ObterPermissao(It.IsAny<int>(), Permissao.MenuRestricao))
                 .Returns(permissao);
 
-            var resultado = _service.ValidarCondutor(condutor, requisicao.Senha, _bancoCliente, requisicao.DescricaoEntrada, _codigoCliente, veiculo, requisicao);
-
+            var request = new ValidacaoCondutorRequest
+            {
+                Condutor = condutor,
+                Senha = requisicao.Senha,
+                BancoCliente = _bancoCliente,
+                DescricaoEntrada = requisicao.DescricaoEntrada,
+                CodigoCliente = _codigoCliente,
+                Veiculo = new Veiculo(),
+                Requisicao = requisicao
+            };
+            var resultado = _service.ValidarCondutor(request);
             Assert.AreEqual(ERetorno.CNHVencida, resultado);
         }
 
@@ -334,15 +446,31 @@ namespace Dojinho.Testes
         {
             var condutor = new Condutor
             {
+                Status = true,
+                Senha = GerenciadorDeHash.GerarHashMD5("123"),
                 ValidadeCNH = DateTime.Today.AddDays(-10),
                 ToleranciaCnhVencida = 0,
-                tipoRestricaoValidadeCnh = true
+                TipoRestricaoValidadeCnh = true
             };
 
             var permissao = new PermissaoXCliente();
 
-            var resultado = _service.VerificaCNHCondutor(condutor, permissao, _bancoCliente, new Requisicao());
+            var request = new ValidacaoCondutorRequest
+            {
+                Condutor = condutor,
+                Senha = "123",
+                BancoCliente = _bancoCliente,
+                CodigoCliente = _codigoCliente,
+                DescricaoEntrada = "",
+                Veiculo = new Veiculo(),
+                Requisicao = new Requisicao()
+            };
 
+            _permissaoServiceMock
+                .Setup(s => s.ObterPermissao(request.CodigoCliente, Permissao.MenuRestricao))
+                .Returns(new PermissaoXCliente());
+
+            var resultado = _service.ValidarCondutor(request);
             Assert.AreEqual(ERetorno.CNHVencida, resultado);
         }
     }
